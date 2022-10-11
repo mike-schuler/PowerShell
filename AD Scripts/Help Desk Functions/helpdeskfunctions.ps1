@@ -192,7 +192,8 @@ function mainCreateBusinessUser {
     $password = genrate-password
     $email = genrate-email -userName $userName -domain $activeSite.domain
 
-
+    Write-Host "User name: $userName"
+    write-host "Email: $email"
     write-host Department: $activeDepartment.name
     write-host Site: $activeSite.name
     $choice = Read-Host "Is this correct? (y/n)"
@@ -235,6 +236,17 @@ function mainCreateBusinessUser {
     }
     else {
         write-host "User not created"
+    }
+
+    #add user to pre-approved department groups.
+    foreach ($group in $activeDepartment.groups) {
+            try {
+            Add-ADGroupMember -Identity $group -Members $user
+            }
+            catch {
+            {1:<{0}} -f 50, "Error adding user to group $group"
+            }
+            }
     }
 
     main    
