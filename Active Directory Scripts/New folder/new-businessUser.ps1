@@ -6,13 +6,14 @@ $siteInfo = Get-Content -Path ".\siteInfo.json" | ConvertFrom-Json
 
 function show-menu {
     $menu = @(
+        "0. Exit"
         "1. Create new user"
         "2. Create new group"
         "3. Add user to group"
         "4. Remove user from group"
         "5. Delete user"
         "6. Delete group"
-        "7. Exit"
+        
     )
     $menu | Out-Host
     $choice = Read-Host "Enter your choice"
@@ -95,6 +96,8 @@ function genrate-email {
 }
 
 
+
+
 #function to create new user
 function mainCreateBusinessUser {
     write-host "New Business User Creation Menu"
@@ -115,7 +118,7 @@ function main {
     $showMenuSelection = show-menu
     switch ($showMenuSelection) {
         1 {mainCreateBusinessUser}
-        7 {exit}
+        0 {exit}
         Default {
             write-host "Feature not implemented yet or invalid choice."
             main
