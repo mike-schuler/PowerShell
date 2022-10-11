@@ -1,0 +1,1 @@
+This is a collections of scripts created to automate manual functions with powershell. 
