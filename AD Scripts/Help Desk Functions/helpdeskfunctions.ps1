@@ -1,3 +1,7 @@
+#Script to semi-automate help desk ad functions
+#Author: Mike Schuler
+#Date: 2022-10-11
+
 #require admin rights
 #require AD module
 Import-Module activedirectory
@@ -60,17 +64,19 @@ function genrate-username {
 
     $userName = "$($firstName.Substring(0,1))$($lastName)"
     $userName = $userName.ToLower()
-    $userNameExists = check-user -userName $userName
+    $userNameExists = check-username -userName $userName
     $x = 1
     while($userNameExists) {
         $userName = "$($userName)$($x)"
-        $userNameExists = check-user -userName $userName
+        $userNameExists = check-username -userName $userName
         $x++
     }
 
     return $userName
 
 }
+
+
 
 #function to generate random pasword for new user
 function genrate-password {
@@ -106,7 +112,7 @@ function genrate-email {
 }
 
 #function to check if ad user exists and returns true or false
-function check-user {
+function check-username {
     [CmdletBinding()]
     param (
         [Parameter()]
@@ -161,6 +167,7 @@ function select-activeDepartment {
 }
 
 
+
 #handles logic for creating new business user
 function mainCreateBusinessUser {
     write-host "Creating new business user"
@@ -179,14 +186,13 @@ function mainCreateBusinessUser {
         write-host "First name and last name are required"
         main
     }
+    
     #automatic generate additional user info from user input
     $userName = genrate-username -firstName $firstName -lastName $lastName
     $password = genrate-password
     $email = genrate-email -userName $userName -domain $activeSite.domain
 
-    write-host "User name: $userName"
-    write-host "Password: $password"
-    write-host "Email: $email"
+
     write-host Department: $activeDepartment.name
     write-host Site: $activeSite.name
     $choice = Read-Host "Is this correct? (y/n)"
@@ -220,8 +226,11 @@ function mainCreateBusinessUser {
             -webpage $activeSite.webpage `
             -PassThru 
          
-        #add user to group
+
         write-host "User created"
+        write-host "User name: $userName"
+        write-host "Password: $password"
+        write-host "Email: $email"
         
     }
     else {
