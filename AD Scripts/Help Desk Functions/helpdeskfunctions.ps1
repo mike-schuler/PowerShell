@@ -1,3 +1,5 @@
+#require admin rights
+#require AD module
 Import-Module activedirectory
 
 #import site info from json file
@@ -132,7 +134,7 @@ function show-departmentMenu {
     $menu = @()
     $menu += "0. Exit"
     $i = 1
-    foreach ($department in $siteInfo.sites[$site].departments) {
+    foreach ($department in $activeSite.departments) {
         $menu += "$i. $($department.name)"
         $i++
     }
@@ -154,102 +156,79 @@ function select-activeDepartment {
     if ($choice -eq 0) {
         main
     }
-    $department = $siteInfo.sites[$site].departments[$choice - 1]
+    $department = $activeSite.departments[$choice - 1]
     return $department
-}
-
-#function to get groups from active sites and display menu
-function show-groupMenu {
-    [CmdletBinding()]
-    param (
-        [Parameter()]
-        [String]
-        $site
-    )
-
-    $menu = @()
-    $menu += "0. Exit"
-    $i = 1
-    foreach ($group in $siteInfo.sites[$site].groups) {
-        $menu += "$i. $($group.name)"
-        $i++
-    }
-    $menu | Out-Host
-    $choice = Read-Host "Enter your choice"
-    return $choice
-}
-
-#function to select a group from the list of groups in the json file.
-function select-activeGroup {
-    [CmdletBinding()]
-    param (
-        [Parameter()]
-        [String]
-        $site
-    )
-
-    $choice = show-groupMenu -site $site
-    if ($choice -eq 0) {
-        main
-    }
-    $group = $siteInfo.sites[$site].groups[$choice - 1]
-    return $group
 }
 
 
 #handles logic for creating new business user
 function mainCreateBusinessUser {
-    write-host "New Business User Creation Menu"
+    write-host "Creating new business user"
     $activeSite = select-activeSite
     if($activeSite -eq $null) {
-        Write-Host "Please select a valid site"
-        mainCreateBusinessUser
+        main
     }
-    write-host "You have selected $($activeSite.name)"
-    $firstName = Read-Host "Enter the users first name"
-    $lastName = Read-Host "Enter the users last name"
-
-    if($firstName -eq $null -or $lastName -eq $null) {
-        Write-Host "Please enter a valid first and last name"
-        mainCreateBusinessUser
+    $activeDepartment = select-activeDepartment -site $activeSite.name
+    if($activeDepartment -eq $null) {
+        main
     }
-
+    #get basic user info from user
+    $firstName = Read-Host "Enter first name"
+    $lastName = Read-Host "Enter last name"
+    if ($firstName -eq "" -or $lastName -eq "") {
+        write-host "First name and last name are required"
+        main
+    }
+    #automatic generate additional user info from user input
     $userName = genrate-username -firstName $firstName -lastName $lastName
     $password = genrate-password
     $email = genrate-email -userName $userName -domain $activeSite.domain
-    $user = New-ADUser -Name "$($firstName) $($lastName)" `
-        -GivenName $firstName `
-        -Surname $lastName `
-        -SamAccountName $userName `
-        -UserPrincipalName $email `
-        -AccountPassword (ConvertTo-SecureString -AsPlainText $password -Force) `
-        -Enabled $true `
-        -ChangePasswordAtLogon $true `
-        -PasswordNeverExpires $false `
-        -EmailAddress $email `
-        -ScriptPath $activeSite.scriptPath `
-        -HomeDirectory ($activeSite.homedirectory + $userName) `
-        -homeDrive $activeSite.homedrive `
-        -StreetAddress $activeSite.streetaddress `
-        -City $activeSite.city `
-        -State $activeSite.state `
-        -PostalCode $activeSite.postalcode `
-        -PassThru `
-        -WhatIf
-    if ($user) {
-        Write-Host "User $($user.SamAccountName) created successfully"
-        Write-Host "Password: $($password)"
+
+    write-host "User name: $userName"
+    write-host "Password: $password"
+    write-host "Email: $email"
+    write-host Department: $activeDepartment.name
+    write-host Site: $activeSite.name
+    $choice = Read-Host "Is this correct? (y/n)"
+    if($choice -eq "y") {
+        #create user
+        $user = New-ADUser -Name "$($firstName) $($lastName)" `
+            -GivenName $firstName `
+            -Surname $lastName `
+            -SamAccountName $userName `
+            -UserPrincipalName $email `
+            -AccountPassword (ConvertTo-SecureString -AsPlainText $password -Force) `
+            -Enabled $true `
+            -ChangePasswordAtLogon $true `
+            -PasswordNeverExpires $false `
+            -AccountNotDelegated $false `
+            -streetAddress $activeSite.streetaddress `
+            -City $activeSite.city `
+            -State $activeSite.state `
+            -PostalCode $activeSite.postalcode `
+            -Country $activeSite.country `
+            -OfficePhone $activeSite.phone `
+            -Title $activeDepartment.title `
+            -Company $activeSite.name `
+            -Department $activeDepartment.name `
+            -DisplayName "$($firstName) $($lastName)" `
+            -HomeDrive $activeSite.homedrive `
+            -HomeDirectory ($activeSite.homedir + $userName) `
+            -ScriptPath $activeSite.scriptpath `
+            -Description "Created by script" `
+            -Path $activedepartment.path `
+            -webpage $activeSite.webpage `
+            -PassThru 
+         
+        #add user to group
+        write-host "User created"
+        
     }
     else {
-        Write-Host "User creation failed"
+        write-host "User not created"
     }
-    
 
-
-    
-
-
-
+    main    
 }
 
 
