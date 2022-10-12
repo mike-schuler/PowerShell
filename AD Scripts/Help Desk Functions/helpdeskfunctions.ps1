@@ -6,8 +6,13 @@
 #require AD module
 Import-Module activedirectory
 
+#gets path to script
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
+
 #import site info from json file
 $siteInfo = Get-Content -Path ".\siteInfo.json" | ConvertFrom-Json
+
+
 
 
 function show-menu {
@@ -166,6 +171,54 @@ function select-activeDepartment {
     return $department
 }
 
+#function to check users CN
+function check-userCN {
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [String]
+        $userCN
+    )
+
+    $user = Get-ADUser -Filter {CN -eq $userCN} -Properties CN
+    if ($user) {
+        return $true
+    }
+    else {
+        return $false
+    }
+}
+
+#function to generate new user CN
+function genrate-userCN {
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [String]
+        $firstname,
+        [Parameter()]
+        [String]
+        $lastname
+    )
+
+    $userCN = "$($firstname) $($lastname)"
+    $userCNExists = check-userCN -userCN $userCN
+    $x = 1
+    while($userCNExists) {
+        #Try using user middle initial
+        if($x -eq 1) {
+            $middleInitial =read-host "Enter middle initial"
+            $userCN = "$($firstname) $($middleInitial) $($lastname)"
+        }else {
+            $userCN = "$($firstname) $($lastname) $($x)"
+        }
+        $userCNExists = check-userCN -userCN $userCN
+        $x++
+    }
+
+    return $userCN
+}
+
 
 
 #handles logic for creating new business user
@@ -182,16 +235,18 @@ function mainCreateBusinessUser {
     #get basic user info from user
     $firstName = Read-Host "Enter first name"
     $lastName = Read-Host "Enter last name"
+    
     if ($firstName -eq "" -or $lastName -eq "") {
         write-host "First name and last name are required"
         main
     }
+    $cnName = (genrate-userCN -firstname $firstName -lastname $lastName)
     
     #automatic generate additional user info from user input
     $userName = genrate-username -firstName $firstName -lastName $lastName
     $password = genrate-password
     $email = genrate-email -userName $userName -domain $activeSite.domain
-
+    Write-Host "CN: $cnName"
     Write-Host "User name: $userName"
     write-host "Email: $email"
     write-host Department: $activeDepartment.name
@@ -199,7 +254,7 @@ function mainCreateBusinessUser {
     $choice = Read-Host "Is this correct? (y/n)"
     if($choice -eq "y") {
         #create user
-        $user = New-ADUser -Name "$($firstName) $($lastName)" `
+        $user = New-ADUser -Name  `
             -GivenName $firstName `
             -Surname $lastName `
             -SamAccountName $userName `
@@ -224,7 +279,6 @@ function mainCreateBusinessUser {
             -ScriptPath $activeSite.scriptpath `
             -Description "Created by script" `
             -Path $activedepartment.path `
-            -webpage $activeSite.webpage `
             -PassThru 
          
 
@@ -232,6 +286,7 @@ function mainCreateBusinessUser {
         write-host "User name: $userName"
         write-host "Password: $password"
         write-host "Email: $email"
+        Read-Host "Press enter to continue"
         
     }
     else {
@@ -244,13 +299,14 @@ function mainCreateBusinessUser {
             Add-ADGroupMember -Identity $group -Members $user
             }
             catch {
-            {1:<{0}} -f 50, "Error adding user to group $group"
+                write-host "Error adding user to group $group"
+
             }
-            }
-    }
+        }
 
     main    
 }
+
 
 
 #main to run script and handel application flow
