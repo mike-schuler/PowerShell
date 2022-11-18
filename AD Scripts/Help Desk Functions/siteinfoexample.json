@@ -1,0 +1,18 @@
+{
+    "sites": [
+        {"name": "SiteName",
+        "streetaddress":"ADD",
+        "city":"Cincinnati", 
+        "state": "OH", 
+        "postalcode": "Code",
+        "country": "USA",
+        "domain":"domain.doamin",
+        "webpage": "www.website.com",
+        "departments": [{"name": "Customer Service","path":"OU=Staff,OU=Example,DC=Example,DC=Example","groups":""}]
+        }
+    
+
+    ]
+
+    
+}

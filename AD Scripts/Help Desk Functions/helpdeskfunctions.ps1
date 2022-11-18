@@ -10,7 +10,7 @@ Import-Module activedirectory
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
 
 #import site info from json file
-$siteInfo = Get-Content -Path ".\siteInfo.json" | ConvertFrom-Json
+$siteInfo = Get-Content -Path "$scriptPath\siteInfo.json" | ConvertFrom-Json
 
 
 
@@ -24,7 +24,7 @@ function show-menu {
         "4. Remove user from group"
         "5. Delete user"
         "6. Delete group"
-        
+
     )
     $menu | Out-Host
     $choice = Read-Host "Enter your choice"
@@ -223,11 +223,13 @@ function genrate-userCN {
 
 #handles logic for creating new business user
 function mainCreateBusinessUser {
+    Clear-Host
     write-host "Creating new business user"
     $activeSite = select-activeSite
     if($activeSite -eq $null) {
         main
     }
+    Clear-Host
     $activeDepartment = select-activeDepartment -site $activeSite.name
     if($activeDepartment -eq $null) {
         main
@@ -235,17 +237,19 @@ function mainCreateBusinessUser {
     #get basic user info from user
     $firstName = Read-Host "Enter first name"
     $lastName = Read-Host "Enter last name"
-    
+
     if ($firstName -eq "" -or $lastName -eq "") {
         write-host "First name and last name are required"
         main
     }
+    Clear-Host
     $cnName = (genrate-userCN -firstname $firstName -lastname $lastName)
-    
+
     #automatic generate additional user info from user input
     $userName = genrate-username -firstName $firstName -lastName $lastName
     $password = genrate-password
     $email = genrate-email -userName $userName -domain $activeSite.domain
+    Clear-Host
     Write-Host "CN: $cnName"
     Write-Host "User name: $userName"
     write-host "Email: $email"
@@ -254,7 +258,7 @@ function mainCreateBusinessUser {
     $choice = Read-Host "Is this correct? (y/n)"
     if($choice -eq "y") {
         #create user
-        $user = New-ADUser -Name  `
+        $user = New-ADUser -Name $cnName `
             -GivenName $firstName `
             -Surname $lastName `
             -SamAccountName $userName `
@@ -279,22 +283,16 @@ function mainCreateBusinessUser {
             -ScriptPath $activeSite.scriptpath `
             -Description "Created by script" `
             -Path $activedepartment.path `
-            -PassThru 
-         
+            -PassThru
+
 
         write-host "User created"
         write-host "User name: $userName"
         write-host "Password: $password"
         write-host "Email: $email"
         Read-Host "Press enter to continue"
-        
-    }
-    else {
-        write-host "User not created"
-    }
-
-    #add user to pre-approved department groups.
-    foreach ($group in $activeDepartment.groups) {
+        Clear-Host
+        foreach ($group in $activeDepartment.groups) {
             try {
             Add-ADGroupMember -Identity $group -Members $user
             }
@@ -303,8 +301,15 @@ function mainCreateBusinessUser {
 
             }
         }
+    }
+    else {
+        write-host "User not created"
+    }
 
-    main    
+    #add user to pre-approved department groups.
+
+    clear-host
+    main
 }
 
 
